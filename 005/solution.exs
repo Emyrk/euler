@@ -39,4 +39,5 @@ defmodule BruteForce do
   end
 end
 
+# 232792560
 BruteForce.find(0)
