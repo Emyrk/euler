@@ -8,8 +8,7 @@ defmodule Fib do
   end
 
   def fib(a, b) do
-    new = a + b
-    [a] ++ fib(b, new)
+    [a] ++ fib(b, a + b)
   end
 end
 
