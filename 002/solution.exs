@@ -3,7 +3,7 @@
 
 defmodule Fib do
   # 4 mil limit
-  def fib(acc, a, b) when a > 4_000_000 or b > 4_000_000 do
+  def fib(acc, a, b) when a > 4_000_000 do
     acc ++ [a]
   end
 
