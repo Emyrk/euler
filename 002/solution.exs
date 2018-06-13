@@ -9,13 +9,13 @@ defmodule Fib do
     acc
   end
 
-  def fib(acc, a, b) do
+  def fib(acc, a, b) when even?(a + b) do
     next = a + b
-    if even?(next) do
-      fib(acc + next, b, next)
-    else
-      fib(acc, b, next)
-    end
+    fib(acc + next, b, next)
+  end
+
+  def fib(acc, a, b) do
+    fib(acc, b, a + b)
   end
 end
 
