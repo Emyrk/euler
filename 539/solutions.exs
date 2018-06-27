@@ -33,17 +33,25 @@ end
 
 # Actually solving S(n)
 defmodule Problem do
-    # Twice as quick as s_option_1
+    # Twice as quick as s_option_1. This is always correct
     #   To check
     #   1..1000 |> Enum.each(&(IO.puts inspect(Problem.s(&1) - Problem.s_option_1(&1))))
     def s(n) do
-        sum = 1..n |> Enum.filter(&(rem(&1, 2) == 0)) |> Enum.reduce(0, fn n, acc ->
-            acc + p(n)
-        end)
-        sum = sum * 2
-        case rem(n, 2) do
-            0 -> sum - p(n) + 1# Even
-            1 -> sum + 1
+        case n do
+        # Shortcuts for comparing
+        1000 -> 268271
+        5000 -> 5981871
+        10000 -> 26096543
+        20000 -> 95665775
+        _ ->
+            sum = 1..n |> Enum.filter(&(rem(&1, 2) == 0)) |> Enum.reduce(0, fn n, acc ->
+                acc + p(n)
+            end)
+            sum = sum * 2
+            case rem(n, 2) do
+                0 -> sum - p(n) + 1# Even
+                1 -> sum + 1
+            end
         end
     end
 
@@ -80,7 +88,7 @@ defmodule Problem do
     end
 
     # The beginning are kinda exceptions because there is no prev set
-    def p_pattern(prev_p, n) when n < 5 do
+    def p_pattern(_, n) when n < 17 do
         p(n)
     end
 
@@ -99,8 +107,137 @@ defmodule Problem do
         prev_p - 2
     end
 
+    # Every 16th with rem 8 is just the previous + 6
+    def p_pattern(prev_p, n) when rem(n, 16) == 8 do
+        prev_p + 6
+    end
+
+    # Every 32nd is just the previous + 10
+    #   64 is an exception... for some reason
+    def p_pattern(prev_p, n) when rem(div(n, 16), 2) == 1 and n != 64 do
+        prev_p - 10
+    end
+
+    # Every 64nd is just the previous + 22
+    #   64 is an exception... for some reason
+    def p_pattern(prev_p, n) when rem(div(n, 32), 2) == 1 and n > 64 do
+        prev_p + 22
+    end
+
+    # Every 64nd is just the previous - 42
+    def p_pattern(prev_p, n) when n > 384 and rem(div(n, 64), 2) == 1 do
+        prev_p - 42
+    end
+
+    def p_pattern(prev_p, n) when n > 400 and rem(div(n, 128), 2) == 1 do
+        prev_p + 86
+    end
+
+    def p_pattern(prev_p, n) when n > 400 and rem(div(n, 256), 2) == 1 do
+        prev_p - 170
+    end
+
+
     def p_pattern(prev_p, n) do
+        v = p(n)
+        dif = v - prev_p
+        IO.puts "Calc " <> inspect(n) <> " : p = " <> inspect(prev_p) <> " v = " <> inspect(v) <> "  " <> inspect(dif)
+        if dif != 0, do: IO.puts "  -> " <> inspect(div(n, 32))
+        
+        v
+    end
+
+
+
+    # DYNAMIC PATTERN!
+    #   If n is divisible by 2^x and odd, then alternate the addition/subtraction of the previous difference number.
+    #   The difference is (prev_dif - 1) * 2
+    #   To check
+    #   1..100 |> Enum.each(&(IO.puts inspect(Problem.s(&1) - Problem.s_dyn_pattern(&1))))
+    def s_dyn_pattern(n) do
+        diflist = diflist()
+        powerlist = powerlist()
+        { _, sum } = 1..n 
+        |> Enum.filter(&(rem(&1, 2) == 0)) 
+        |> Enum.reduce({0, 0}, fn n, state ->
+            {prev, acc} = state
+            p = p_pattern_dynamic(powerlist, diflist, prev, n)
+            {p, acc + p}
+        end)
+
+        sum = sum * 2 # We are only using half the n's
+        case rem(n, 2) do
+            0 -> sum - p(n) + 1# Even
+            1 -> sum + 1
+        end
+    end
+
+    def powerlist(), do: 5..1000 |> Enum.map(&(trunc(:math.pow(2, &1))))
+    def diflist() do
+        start = []
+        {list, _ } = (4..1000 |> Enum.map_reduce(-10, fn _, p_dif ->
+            d = trunc(((p_dif*-1) + 1) * 2)
+            {d, d}
+        end))
+        start ++ list
+    end
+
+    # 1000..5000 |> Enum.each(&(IO.puts Problem.p_pattern_dynamic(Problem.p(&1-1), &1) - Problem.p(&1)))
+    def p_pattern_dynamic(prev, n) do 
+        p_pattern_dynamic(powerlist(), diflist(), prev, n)
+    end
+
+    def p_pattern_dynamic(_powerlist, _diflist, _prev, n) when n < 17 do
         p(n)
+    end
+
+    def p_pattern_dynamic(_powerlist, _diflist, prev, n) when rem(n, 2) == 1 do
+        prev
+    end
+
+    # Every 4th is just the previous + 2
+    def p_pattern_dynamic(_powerlist, _diflist, prev, n) when rem(n, 4) == 2 do
+        prev + 2
+    end
+
+    # Every time floor(div, 4) == odd
+    def p_pattern_dynamic(_powerlist, _diflist, prev, n) when rem(div(n, 4), 2) == 1 do
+        prev - 2
+    end
+
+    # Every 16th with rem 8 is just the previous + 6
+    def p_pattern_dynamic(_powerlist, _diflist, prev, n) when rem(n, 16) == 8 do
+        prev + 6
+    end
+
+    # Every 32nd is just the previous + 10
+    #   64 is an exception... for some reason
+    def p_pattern_dynamic(_powerlist, _diflist, prev, n) when rem(div(n, 16), 2) == 1 and n != 64 do
+        prev - 10
+    end
+
+    def p_pattern_dynamic(powerlist, diflist, prev, n) do
+        [p_head | p_tail] = powerlist
+        [d_head | d_tail] = diflist
+        if p_head == [] do
+            p(n)
+        else
+            p = p_pattern_check(p_head, d_head, prev, n)
+            if p == 0 do
+                p_pattern_dynamic(p_tail, d_tail, prev, n)
+            else
+                p
+            end
+        end
+
+    end
+
+    def p_pattern_check(power, dif, prev, n) when n < power * 2 do
+        p(n)
+    end
+
+    def p_pattern_check(power, dif, prev, n) do
+        if rem(div(n, power), 2) == 1, do: prev + dif, else: 0
     end
 
     # Brute force p
@@ -152,32 +289,26 @@ range = trunc(:math.pow(2, num))..trunc(:math.pow(2, num+1)-1)
 # )
 
 # Sum
-{_, full_sums} = 1..1 |> Enum.reduce({0, []}, fn num, acc ->
-        {running, list} = acc
-        range = trunc(:math.pow(2, num))..trunc(:math.pow(2, num+1)-1)
-        sum = range
-        |> Enum.filter(&(rem(&1, 2) == 0)) 
-        |> Enum.reduce(0, fn n, acc ->
-            acc + Trim.trim_list_n(n)
-        end
-        )
+# {_, full_sums} = 1..1 |> Enum.reduce({0, []}, fn num, acc ->
+#         {running, list} = acc
+#         range = trunc(:math.pow(2, num))..trunc(:math.pow(2, num+1)-1)
+#         sum = range
+#         |> Enum.filter(&(rem(&1, 2) == 0)) 
+#         |> Enum.reduce(0, fn n, acc ->
+#             acc + Trim.trim_list_n(n)
+#         end
+#         )
 
-        running = running + sum * 2
-        IO.puts inspect(range) <> " -> S(" <> inspect(trunc(:math.pow(2, num+1)-1)) <> ") = " <> inspect(running) <> "  | max: " <> inspect(Props.max_p(:math.pow(2, num)))
-        {running, list ++ [running]}
-    end
-)
+#         running = running + sum * 2
+#         IO.puts inspect(range) <> " -> S(" <> inspect(trunc(:math.pow(2, num+1)-1)) <> ") = " <> inspect(running) <> "  | max: " <> inspect(Props.max_p(:math.pow(2, num)))
+#         {running, list ++ [running]}
+#     end
+# )
 
 
 # full_sums = [4, 12, 56, 176, 864, 2752, 13696, 43776, 218624, 699392, 3495936, 11186176, 55926784, 178962432]
 ev_4th_sum = [0, 2, 12, 40, 208, 672, 3392, 10880, 54528, 174592, 873472, 2795520]
 
-full_sums |> Enum.reverse |> Enum.reduce(1, fn cur, prev ->
-    unless cur == 0, do: IO.puts inspect(prev / cur)
-    cur # Pass the current to next
-end)
-
-IO.puts inspect(full_sums)
 # IO.puts inspect(sums |> Enum.map(&(&1/4)))
 
 
@@ -235,3 +366,22 @@ end
 # 1024..2047 -> 16
 # 2048..4095 -> 32
 # 4096..8191 -> 32
+
+
+# Get s_list
+# 1..500 |> Enum.each(&(
+#     IO.puts "S(" <> inspect(&1) <> ") = " <> inspect(Problem.s_pattern(&1)) <> " - " <> inspect(trunc(Util.log2(&1)))
+# ))
+
+
+# 1..500 
+# |> Enum.map(&(Problem.s_pattern(&1))) # Now a list of S(n)
+# |> Enum.reduce(0, fn sn, prev ->
+#     IO.puts inspect(sn - prev)
+#     sn
+# end)
+
+
+# THE PROBLEM
+IO.puts rem(Problem.s_dyn_pattern(trunc(10.0e+18)), 987654321)
+#

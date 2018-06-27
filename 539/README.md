@@ -44,6 +44,9 @@ If the pattern is identified, not only is `P(n)` become `O(1)`, but we can calcu
 
 The pattern for `n` to `n+6` (ignoreing odds), the pattern follows `x`, `y`, `x`, `y`, where `x = y - 2`. This pattern starts where `⌊n/4⌋` is even. On the next  `⌊n/4⌋` being even, the starting number does not seem as easily corrolated to `n-2`. If we could determine the value of `P(x) where x == ⌊n/4⌋ and is even`, then we would have the answer.
 
+
+**SEE CODE FOR ALL PATTERNS!**
+
 The values for this unlinked number has an interesting property where is starts at some value `< max`, and the max is hit `y` times before we hit the next `n` barrier. Here is the number of times the max value for `P(n)` (based on our bounds) is hit for each range.
 
 ```
