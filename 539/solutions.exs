@@ -161,6 +161,7 @@ defmodule Problem do
         |> Enum.filter(&(rem(&1, 2) == 0)) 
         |> Enum.reduce({0, 0}, fn n, state ->
             {prev, acc} = state
+            # if rem(n, 1000) == 0, do: IO.puts n
             p = p_pattern_dynamic(powerlist, diflist, prev, n)
             {p, acc + p}
         end)
