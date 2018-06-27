@@ -118,7 +118,7 @@ Somelists:
 logn = Enum.to_list(1..12)
 four_to_n = [4, 16, 64, 256, 1024, 4096, 16384, 65536, 262144, 1048576, 4194304, 16777216]
 sn = [4, 16, 72, 248, 1112, 3864, 17560, 61336, 279960, 979352, 4475288, 15661464]
-``
+```
 
 
 The values double each time for the number of times it hits the max value. 
