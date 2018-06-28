@@ -2,6 +2,8 @@ defmodule Util do
     def log2(n) do
         :math.log(n)/:math.log(2)
     end
+
+    def goto(), do: trunc(10.0e18)
 end
 
 # Trim takes a list of numbers and performs the function
@@ -33,31 +35,109 @@ end
 
 # Actually solving S(n)
 defmodule Problem do
+    def s(n) do
+        s(1, n)
+    end
+
+    def m_t(n) do 
+        rem(trunc(n), mod_a())
+    end
+
+    def mod_a() do
+        987654321
+    end
+
+    def stolen_s(n) when n == 0 do
+        0
+    end
+
+    def stolen_s(n) when n == 1 do
+        1
+    end
+
+    def stolen_s(n) when n == 2 do
+        3
+    end
+
+    def stolen_s(n)  when n == 3 do
+        5
+    end
+
+    def stolen_s(n) do
+        x = div(n, 4)        
+        ret = m_t(stolen_s(x - 1) * 16) - m_t((x - 1) * 4) + 5
+        y = x * 4
+        acc = y..n |> Enum.reduce(ret, fn i, acc ->
+            acc + m_t(p(i))
+        end)
+        rem(acc + mod_a, mod_a)
+    end
+
     # Twice as quick as s_option_1. This is always correct
     #   To check
     #   1..1000 |> Enum.each(&(IO.puts inspect(Problem.s(&1) - Problem.s_option_1(&1))))
-    def s(n) do
-        case n do
+    def s(n1, n2) do
+        case n2 do
         # Shortcuts for comparing
         1000 -> 268271
         5000 -> 5981871
         10000 -> 26096543
         20000 -> 95665775
         _ ->
-            sum = 1..n |> Enum.filter(&(rem(&1, 2) == 0)) |> Enum.reduce(0, fn n, acc ->
+            sum = n1..n2 |> Enum.filter(&(rem(&1, 2) == 0)) |> Enum.reduce(0, fn n, acc ->
                 acc + p(n)
             end)
             sum = sum * 2
-            case rem(n, 2) do
-                0 -> sum - p(n) + 1# Even
+            case rem(n2, 2) do
+                0 -> sum - p(n2) + 1# Even
                 1 -> sum + 1
             end
         end
     end
 
-    # Brute force
+
+    # Problem.s_e_l(4294967296, 8589934591, 2147483648)
+    # 4294967296..8589934591 |> Enum.filter(&(rem(&1, 2147483648) == 0))
+
+   # Returns {S(n), last}
+    def s_e_l(n1, n2, r) when rem(n1, r) == 0 do
+        last = p(n1 + r)
+        {p(n1) + last, last}
+        # n1..n2 |> Enum.filter(&(rem(&1, r) == 0)) |> Enum.reduce({0, 0}, fn n, acc ->
+        #     {sum, last} = acc
+        #     v = p(n)
+        #     {sum + v, v}
+        # end)
+    end
+
+    # Returns {S(n), last}
+    def s_e_l(n1, n2, r) do
+            n1..n2 |> Enum.filter(&(rem(&1, r) == 0)) |> Enum.reduce({0, 0}, fn n, acc ->
+                {sum, last} = acc
+                v = p(n)
+                {sum + v, v}
+            end)
+    end
+
+    def s_e(n1, n2, r) do
+            sum = n1..n2 |> Enum.filter(&(rem(&1, r) == 0)) |> Enum.reduce(0, fn n, acc ->
+                acc + p(n)
+            end)
+            sum
+            # sum = sum * 2
+            # case rem(n, 2) do
+            #     0 -> sum - p(n) + 1# Even
+            #     1 -> sum + 1
+            # end
+    end
+
     def s_option_1(n) do
-        1..n |> Enum.reduce(0, fn n, acc ->
+        s_option_1(1, n)
+    end
+
+    # Brute force
+    def s_option_1(n1, n2) do
+        n1..n2 |> Enum.reduce(0, fn n, acc ->
             acc + p(n)
         end)
     end
@@ -147,30 +227,79 @@ defmodule Problem do
         v
     end
 
+    def s_dyn_pattern(n) do
+        s_dyn_pattern(1, n, 0)
+    end
 
+    def s_dyn_pattern(n1, n2) do
+        s_dyn_pattern(n1, n2, p(n1 - 1))
+    end
+
+    def s_dyn_pattern(n1, n2, last) when n1 >= n2 do
+        0
+    end
 
     # DYNAMIC PATTERN!
     #   If n is divisible by 2^x and odd, then alternate the addition/subtraction of the previous difference number.
     #   The difference is (prev_dif - 1) * 2
     #   To check
     #   1..100 |> Enum.each(&(IO.puts inspect(Problem.s(&1) - Problem.s_dyn_pattern(&1))))
-    def s_dyn_pattern(n) do
+    #   n1 MUST be on a power of 2 boundry
+    def s_dyn_pattern(n1, n2, last) do
         diflist = diflist()
         powerlist = powerlist()
-        { _, sum } = 1..n 
-        |> Enum.filter(&(rem(&1, 2) == 0)) 
-        |> Enum.reduce({0, 0}, fn n, state ->
+        { _, sum } = n1..n2 
+        |> Stream.filter(&(rem(&1, 2) == 0)) 
+        |> Enum.reduce({last, 0}, fn n, state ->
             {prev, acc} = state
-            # if rem(n, 1000) == 0, do: IO.puts n
             p = p_pattern_dynamic(powerlist, diflist, prev, n)
-            {p, acc + p}
+            {p, rem(acc + p, 987654321)}
         end)
 
         sum = sum * 2 # We are only using half the n's
-        case rem(n, 2) do
-            0 -> sum - p(n) + 1# Even
-            1 -> sum + 1
+        case rem(n2, 2) do
+            0 -> sum - p(n2)# Even
+            1 -> sum
         end
+    end
+
+    def s_chunks(n) when n < 64 do
+        s_dyn_pattern(n)
+    end
+
+    # Build chunks of sets to sum together. 
+    def s_chunks(n) do
+        diflist = s_diflist()
+        powerlist = powerlist()
+        # We will have to manually add anything after the last element
+        ln = trunc(Util.log2(n))
+        # Chunks will start after 63
+        # acc = {sum, last, }
+        {running, bot} = 8..ln |> Enum.reduce({s(127), p(127)}, fn i, acc ->
+            # The acc will have {S(n), last}
+            # Do each chunk
+            r =  trunc(:math.pow(2, i-2)) 
+            n = :math.pow(2, i)
+            bot = trunc(Props.min_p(n))
+            top = trunc(Props.max_p(n)) - 1
+
+            # Now when solving, you don't need to calculate each value
+            {sum_off, last} = s_e_l(bot, top, r)
+            idx = trunc(i / 2) - 4
+            {_, dr} = Enum.fetch(diflist, idx)
+            dif = dr * r
+            sum = rem((sum_off*r), 987654321) + rem(dif, 987654321)
+            {running, _} = acc
+
+            IO.puts "(" <> to_string(bot) <> ", " <> to_string(top) <> ") r = " <> inspect(r) <> " sum = "  <> inspect(sum) <> 
+            " dif = " <> inspect(dif) <> " running = " <> inspect(running) 
+            {rem(running + sum, 987654321) , top}
+        end)
+
+        next_sum = s_dyn_pattern(bot, n)
+        running = running + next_sum
+        rem(running, 987654321)
+        
     end
 
     def powerlist(), do: 5..1000 |> Enum.map(&(trunc(:math.pow(2, &1))))
@@ -181,6 +310,10 @@ defmodule Problem do
             {d, d}
         end))
         start ++ list
+    end
+
+    def s_diflist() do
+        diflist() |> Enum.filter(&(&1 < 0)) |> Enum.map(&(abs(&1)))
     end
 
     # 1000..5000 |> Enum.each(&(IO.puts Problem.p_pattern_dynamic(Problem.p(&1-1), &1) - Problem.p(&1)))
@@ -241,8 +374,22 @@ defmodule Problem do
         if rem(div(n, power), 2) == 1, do: prev + dif, else: 0
     end
 
-    # Brute force p
+    def p(n) when n == 1 do
+        1
+    end
+
+    def p(n) when n == 2 or n == 3 do
+        2
+    end
+
     def p(n) do
+        x = div(n, 4)
+        ret = p(x) * 4
+        if rem(n, 4) < 2, do: ret - 2, else: ret
+    end
+
+    # Brute force p
+    def brute_p(n) do
         Trim.trim_list_n(n)
     end
 end
@@ -384,5 +531,49 @@ end
 
 
 # THE PROBLEM
-IO.puts rem(Problem.s_dyn_pattern(trunc(10.0e+18)), 987654321)
+# IO.puts rem(Problem.s_chunks(trunc(10.0e+18)), 987654321)
 #
+
+
+# list = 1..3000 |> Enum.map(&(Problem.s_dyn_pattern(&1) - Problem.s_16(&1) * 16))
+# Enum.reduce(list, 0, fn n, p ->
+#     IO.puts n - p
+#     n
+# end)
+
+# 8..10|> Enum.each(&(Sh.dif(&1)))
+defmodule Sh do
+    def dif(i) do
+        n = :math.pow(2, i)
+        r =  trunc(:math.pow(2, i-2)) #2 * (trunc(Util.log2(n) - 1))
+
+        d = dif(trunc(Props.min_p(n)), trunc(Props.max_p(n)) - 1, r)
+                IO.puts to_string(Props.min_p(n)) <> " " <>
+        to_string(trunc(Props.max_p(n)) -  1) <> " " <>
+        to_string(r) <> " i = " <> inspect(i) <> " r = " <> inspect(r) <> " d = " <> inspect(d) <> " d/r = " <> inspect(d/r)
+        d
+    end
+
+    def dif(n1, n2, r) do
+        # IO.puts Problem.s_e(n1,n2,r)
+        Problem.s_option_1(n1, n2) - Problem.s_e(n1,n2,r) * r
+    end
+end
+
+defmodule PlotP do
+    def print_p(n) do
+        n = :math.pow(2, n)
+        bot = trunc(Props.min_p(n))
+        top = trunc(Props.max_p(n)) - 1
+
+        f = File.open!("out.dat", [:read, :write])
+        IO.puts "Section: (" <> inspect(bot) <> ", " <> inspect(top) <> ")"
+        bot..top |> Enum.filter(&(rem(&1, 2) == 0)) |>Enum.each(fn n ->
+            str =  inspect(n) <> "  " <> inspect(Problem.p(n)) <> "\n"
+            IO.puts str
+            IO.write f, str
+        end)
+        File.close(f)
+    end
+
+end
