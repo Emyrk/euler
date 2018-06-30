@@ -3,6 +3,7 @@ defmodule BruteForce do
 
     # Given an odd number 'n', tells you at which power of 2 multiplied
     # against n is required to get f factors.
+    # NOT THE EULER PROBLEMs
     def when_n_factors(n, f) do 
         factor_n = brute_number_of_factors(n)
         factor_n2 = brute_number_of_factors(n*2)
@@ -22,6 +23,7 @@ defmodule BruteForce do
 
     # Cycles through odd numbers trying to find the first number that 
     # gets to f factors.
+    # NOT THE EULER PROBLEM
     def first_to_f_factors(f) do
         1..5000000 
         |> Enum.filter(& rem(&1, 2) == 0) 
