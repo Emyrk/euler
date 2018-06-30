@@ -1,7 +1,7 @@
 answer = File.stream!("numbers.txt")
 |> Stream.map(fn s ->
     {v, _} =Integer.parse(s)
-        v
+    v
 end) 
 |> Enum.reduce(0, fn v, acc ->
     acc + v
