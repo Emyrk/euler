@@ -60,6 +60,14 @@ defmodule BruteForce do
         end
     end
 
+    def number_of_factors(n, mult) when rem(n, 2) == 1 and mult == 0 do
+        brute_number_of_factors(n)
+    end
+
+    def number_of_factors(n, mult) when rem(n, 2) == 1 and mult <= 2 do
+        brute_number_of_factors(trunc(n * :math.pow(2, mult)))
+    end
+
     def number_of_factors(n, mult) when rem(n, 2) == 1 do
         factor_n = brute_number_of_factors(n)
         factor_n2 = brute_number_of_factors(n*2)
