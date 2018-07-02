@@ -1,0 +1,36 @@
+package main
+
+import (
+	"bufio"
+	"os"
+	"strconv"
+	"strings"
+)
+
+func main() {
+	get_grid()
+}
+
+func get_grid() [][]int {
+	file, err := os.OpenFile("grid.txt", os.O_RDONLY, 0777)
+	if err != nil {
+		panic(err)
+	}
+
+	rows := make([][]int, 0)
+	reader := bufio.NewReader(file)
+	for {
+		line, _, err := reader.ReadLine()
+		if err != nil {
+			break
+		}
+		row := strings.Split(string(line), " ")
+		row_int := make([]int, len(row))
+		for i := range row {
+			row_int[i], _ = strconv.Atoi(row[i])
+		}
+		rows = append(rows, row_int)
+	}
+
+	return rows
+}
