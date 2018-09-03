@@ -32,5 +32,5 @@ end
 
 # This is not efficient, but eh
 # 6857
-IO.puts largest_prime_factor(600851475143)
+IO.puts Factors.largest_prime_factor(600851475143)
 
