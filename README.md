@@ -4,6 +4,7 @@
 
 ```
 cat solution.exs - | iex
+elixer solutions.exs
 ```
 
 # Notes
