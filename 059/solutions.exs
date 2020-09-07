@@ -1,3 +1,4 @@
+# Going to Golang
 use Bitwise
 
 defmodule XORCipher do
