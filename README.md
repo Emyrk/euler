@@ -4,7 +4,7 @@
 
 ```
 cat solution.exs - | iex
-elixer solutions.exs
+elixir solution.exs
 ```
 
 # Notes
