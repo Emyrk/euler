@@ -70,12 +70,15 @@ options =
     throwI = Enum.find_index(throws, &(&1 == a))
 
     case b do
+      # X is a lose. Losing is the index - 1. Add the lenght back to catch the `-1` case.
       "X" ->
         Map.put(acc, {a, b}, Enum.at(throws, rem(throwI - 1 + length(throws), length(throws))))
 
+      # Tying is the same index.
       "Y" ->
         Map.put(acc, {a, b}, a)
 
+      # Winning is index + 1
       "Z" ->
         Map.put(acc, {a, b}, Enum.at(throws, rem(throwI + 1, length(throws))))
     end
