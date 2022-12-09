@@ -179,7 +179,6 @@ IO.puts("Part 1 Visited: #{Map.size(rope.visited)}")
 chain = Chain.new(9)
 chain = Chain.simulate(chain, File.stream!("input.txt"))
 IO.puts("Part 2 Visited: #{Map.size(Enum.at(chain.ropes, 8).visited)}")
-# Rope.draw(Enum.at(chain.ropes, 8))
 
 defmodule Expects do
   def testDiagonal() do
