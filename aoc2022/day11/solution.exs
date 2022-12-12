@@ -55,7 +55,7 @@ defmodule Monkey do
     matches = Regex.run(~r/divisible by (\d+)/, text)
     scaler = String.to_integer(Enum.at(matches, 1))
 
-    &(rem(&1, scaler) == 0)
+    scaler
   end
 
   def parseThrow(text) do
@@ -91,8 +91,9 @@ defmodule Main do
     |> Enum.map(worry)
     |> Enum.reduce(monkeys, fn item, acc ->
       # Test true/false
+
       next =
-        case curr.test.(item) do
+        case rem(item, curr.test) == 0 do
           true -> curr.ifTrue
           false -> curr.ifFalse
         end
@@ -103,10 +104,7 @@ defmodule Main do
     end)
   end
 
-  def solve(rounds, worry) do
-    {:ok, text} = File.read("input.txt")
-    monkeys = Monkey.parseMonkeys(text)
-
+  def solve(monkeys, rounds, worry) do
     monkeys =
       1..rounds
       |> Enum.reduce(monkeys, fn _, acc ->
@@ -130,11 +128,23 @@ defmodule Main do
   end
 
   def partOne do
-    Main.solve(20, &floor(&1 / 3))
+    {:ok, text} = File.read("input.txt")
+    monkeys = Monkey.parseMonkeys(text)
+
+    Main.solve(monkeys, 20, &floor(&1 / 3))
   end
 
   def partTwo do
-    Main.solve(10000, & &1)
+    {:ok, text} = File.read("input.txt")
+    monkeys = Monkey.parseMonkeys(text)
+
+    max =
+      monkeys
+      |> Enum.reduce(1, fn monkey, acc ->
+        acc = acc * monkey.test
+      end)
+
+    Main.solve(monkeys, 10000, &rem(&1, max))
   end
 end
 
