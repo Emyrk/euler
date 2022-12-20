@@ -1,3 +1,9 @@
+#######
+# THIS SOLUTION DOES NOT WORK
+#
+# I am not sure why, it was hard to debug.
+#######
+
 defmodule Materials do
   defstruct ore: 0, clay: 0, obsidian: 0, geode: 0
 

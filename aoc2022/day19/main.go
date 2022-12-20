@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -44,6 +45,10 @@ type state struct {
 
 func (s state) equal(b state) bool {
 	return s.bots == b.bots && s.materials == b.materials
+}
+
+func (s state) score(remaining int) int {
+	return s.materials[3] + (s.bots[3] * remaining)
 }
 
 //var skip int
@@ -123,6 +128,100 @@ var exp = regexp.MustCompile(`Blueprint .*:\s+` +
 	`Each obsidian robot costs ([^.]*).\s+` +
 	`Each geode robot costs ([^.]*).`)
 
+func partOne(blueprints []blueprint) {
+	start := state{
+		bots:      mats{1, 0, 0, 0},
+		materials: mats{0, 0, 0, 0},
+	}
+
+	minutes := 24
+	printScores := make([]int, 0, len(blueprints))
+	for i, blueprint := range blueprints {
+		duplicate := make(map[state]bool)
+		branches := []state{start}
+		for minute := 0; minute < minutes; minute++ {
+			newBranches := make([]state, 0)
+			for _, b := range branches {
+				newBranches = append(newBranches, b.branches(blueprint, duplicate, minutes-minute)...)
+			}
+			branches = newBranches
+			//fmt.Printf("Minute %d: %d branches\n", minute+1, len(branches))
+		}
+
+		bestGeode := state{}
+		for _, b := range branches {
+			b := b
+			if b.materials[3] > bestGeode.materials[3] {
+				bestGeode = b
+			}
+		}
+		score := (i + 1) * bestGeode.materials[3]
+		//fmt.Printf("Best geode score=%d: %v\n", score, bestGeode)
+		printScores = append(printScores, score)
+	}
+
+	total := 0
+	for _, score := range printScores {
+		total += score
+	}
+	fmt.Printf("Part One score: %d\n", total)
+}
+
+func partTwo(blueprints []blueprint) {
+	if len(blueprints) > 3 {
+		blueprints = blueprints[:3]
+	}
+	start := state{
+		bots:      mats{1, 0, 0, 0},
+		materials: mats{0, 0, 0, 0},
+	}
+
+	minutes := 32
+	printScores := make([]int, 0, len(blueprints))
+	for printIdx, blueprint := range blueprints {
+		var _ = printIdx
+		duplicate := make(map[state]bool)
+		branches := []state{start}
+		for minute := 0; minute < minutes; minute++ {
+			newBranches := make([]state, 0)
+			remain := minutes - minute
+			for _, b := range branches {
+				newBranches = append(newBranches, b.branches(blueprint, duplicate, remain)...)
+			}
+			branches = pruneByScore(newBranches, remain)
+			//fmt.Printf("Blueprint %d, minute %d: %d branches\n", printIdx, minute+1, len(branches))
+		}
+
+		bestGeode := state{}
+		for _, b := range branches {
+			b := b
+			if b.materials[3] > bestGeode.materials[3] {
+				bestGeode = b
+			}
+		}
+		score := bestGeode.materials[3]
+		fmt.Printf("Best geode score=%d: %v\n", score, bestGeode)
+		printScores = append(printScores, score)
+	}
+
+	total := 1
+	for _, score := range printScores {
+		total *= score
+	}
+	fmt.Printf("Part Two score: %d\n", total)
+}
+
+func pruneByScore(states []state, remaining int) []state {
+	sort.Slice(states, func(i, j int) bool {
+		return states[i].score(remaining) > states[j].score(remaining)
+	})
+	// 100,000 is a magic number
+	if len(states) > 100000 && states[0].score(remaining) > 2 {
+		return states[:100000]
+	}
+	return states
+}
+
 func main() {
 	input := must(os.ReadFile("/home/steven/go/src/github.com/Emyrk/euler/aoc2022/day19/input.txt"))
 	lines := strings.Split(string(input), "\n")
@@ -154,42 +253,8 @@ func main() {
 		blueprints = append(blueprints, print)
 	}
 
-	start := state{
-		bots:      mats{1, 0, 0, 0},
-		materials: mats{0, 0, 0, 0},
-	}
-
-	minutes := 24
-	printScores := make([]int, 0, len(blueprints))
-	for i, blueprint := range blueprints {
-		duplicate := make(map[state]bool)
-		branches := []state{start}
-		for minute := 0; minute < minutes; minute++ {
-			newBranches := make([]state, 0)
-			for _, b := range branches {
-				newBranches = append(newBranches, b.branches(blueprint, duplicate, minutes-minute)...)
-			}
-			branches = newBranches
-			fmt.Printf("Minute %d: %d branches\n", minute+1, len(branches))
-		}
-
-		bestGeode := state{}
-		for _, b := range branches {
-			b := b
-			if b.materials[3] > bestGeode.materials[3] {
-				bestGeode = b
-			}
-		}
-		score := (i + 1) * bestGeode.materials[3]
-		fmt.Printf("Best geode score=%d: %v\n", score, bestGeode)
-		printScores = append(printScores, score)
-	}
-
-	total := 0
-	for _, score := range printScores {
-		total += score
-	}
-	fmt.Printf("Total score: %d\n", total)
+	partOne(blueprints)
+	partTwo(blueprints)
 }
 
 func must[V any](value V, err error) V {
