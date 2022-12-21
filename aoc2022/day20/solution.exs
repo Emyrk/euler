@@ -1,15 +1,21 @@
 defmodule Mixer do
-  @spec brute_force(list(integer)) :: list(integer)
   def brute_force(order) do
+    brute_force(order, 1)
+  end
+
+  @spec brute_force(list(integer), integer) :: list(integer)
+  def brute_force(order, n) do
     cpy =
       order
       |> Enum.with_index()
 
-    order
-    |> Enum.with_index()
-    |> Enum.reduce(cpy, fn {_, key}, acc ->
-      # IO.inspect(acc)
-      shift(acc, key)
+    1..n
+    |> Enum.reduce(cpy, fn _, acc ->
+      order
+      |> Enum.with_index()
+      |> Enum.reduce(acc, fn {_, key}, acc ->
+        shift(acc, key)
+      end)
     end)
   end
 
@@ -132,6 +138,26 @@ end
 defmodule Main do
   def main do
     partOne()
+    partTwo()
+  end
+
+  def partTwo do
+    list =
+      readfile("input.txt")
+      |> Enum.map(&(&1 * 811_589_153))
+      |> Mixer.brute_force(10)
+      |> Enum.map(fn {v, _} -> v end)
+
+    coords =
+      [1000, 2000, 3000]
+      |> Enum.map(fn x ->
+        zero = Enum.find_index(list, &(&1 == 0))
+        idx = rem(x + zero, length(list))
+        Enum.at(list, idx)
+      end)
+      |> Enum.sum()
+
+    IO.puts("Part 2: #{coords}")
   end
 
   def partOne do
