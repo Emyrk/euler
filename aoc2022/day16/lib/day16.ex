@@ -2,8 +2,112 @@ defmodule Room do
   defstruct name: "", flow: 0, tunnels: [], opened: false
 end
 
+defmodule RC do
+  def comb(0, _), do: [[]]
+  def comb(_, []), do: []
+
+  def comb(m, [h | t]) do
+    for(l <- comb(m - 1, t), do: [h | l]) ++ comb(m, t)
+  end
+end
+
 defmodule Volcano do
   @roomRegex ~r/Valve ([A-Z][A-Z]) has flow rate=(\d+);\s+tunnels? leads? to valves? (.*)/
+
+  def make_rooms(rooms, names) do
+    # IO.inspect(names)
+
+    rooms
+    |> Enum.map(fn {name, room} ->
+      # IO.inspect({name, names})
+
+      if Enum.member?(names, name) do
+        {name, %{room | opened: true}}
+      else
+        {name, room}
+      end
+    end)
+    |> Map.new()
+  end
+
+  def solve_2(start, graph, rooms, time) do
+    splits = room_splits(rooms)
+    IO.inspect(splits)
+    IO.puts("Splits: #{length(splits)}")
+
+    splits
+    # |> Stream.map(fn n ->
+    |> Enum.with_index()
+    |> Task.async_stream(
+      fn {{a, b}, n} ->
+        ga = make_rooms(rooms, a)
+        gb = make_rooms(rooms, b)
+
+        # IO.inspect(gb)
+        scoreA = Volcano.gtraverse("AA", graph, ga, 26)
+        scoreB = Volcano.gtraverse("AA", graph, gb, 26)
+        IO.puts("#{n}: #{scoreA} + #{scoreB} = #{scoreA + scoreB}")
+        scoreA + scoreB
+      end,
+      max_concurrency: 8,
+      timeout: :infinity
+    )
+    # |> Task.await_many(:infinity)
+    |> Enum.to_list()
+    |> Enum.map(fn {:ok, score} -> score end)
+    |> Enum.max()
+  end
+
+  def room_splits(rooms) do
+    names =
+      rooms
+      |> Enum.filter(fn {_, room} ->
+        room.flow > 0
+      end)
+      |> Enum.map(fn {name, _} ->
+        name
+      end)
+
+    a =
+      1..length(names)
+      |> Enum.reduce([], fn n, acc ->
+        acc ++ RC.comb(n, names)
+      end)
+      |> Enum.filter(fn subset ->
+        subset != nil
+      end)
+
+    aMatch =
+      a
+      |> Enum.map(fn subset ->
+        {subset, true}
+      end)
+      |> Map.new()
+
+    # |> Enum.count()
+
+    a
+    |> Enum.take(round((length(a) + 1) / 2))
+    |> Enum.reduce([], fn aSet, acc ->
+      bSet = names -- aSet
+      [{aSet, bSet} | acc]
+    end)
+  end
+
+  def make_graph(rooms) do
+    graph =
+      rooms
+      |> Enum.reduce(Graph.new(), fn {_, room}, graph ->
+        # Add all vertices
+        graph = Graph.add_vertex(graph, room.name, room)
+
+        graph =
+          room.tunnels
+          |> Enum.reduce(graph, fn tunnel, graph ->
+            Graph.add_edge(graph, room.name, tunnel)
+          end)
+      end)
+  end
 
   def parse(file) do
     rooms =
@@ -25,31 +129,18 @@ defmodule Volcano do
       end)
       |> Map.new()
 
-    graph =
-      rooms
-      |> Enum.reduce(Graph.new(), fn {_, room}, graph ->
-        # Add all vertices
-        graph = Graph.add_vertex(graph, room.name, room)
-
-        graph =
-          room.tunnels
-          |> Enum.reduce(graph, fn tunnel, graph ->
-            Graph.add_edge(graph, room.name, tunnel)
-          end)
-      end)
-
-    {graph, rooms}
+    {make_graph(rooms), rooms}
   end
 
   def gtraverse(roomName, graph, rooms, time) do
-    gtraverse(roomName, graph, rooms, time, 0)
+    gtraverse(roomName, graph, rooms, time, 0, [], %{})
   end
 
-  def gtraverse(_roomName, _graph, _rooms, time, score) when time <= 0 do
+  def gtraverse(_roomName, _graph, _rooms, time, score, _order, _dupeMap) when time <= 0 do
     score
   end
 
-  def gtraverse(roomName, graph, rooms, time, currentScore) do
+  def gtraverse(roomName, graph, rooms, time, currentScore, order, dupeMap) do
     all_opened = Enum.all?(rooms, fn {_, room} -> room.opened == true end)
 
     # IO.puts("Time is #{time} and all opened is #{all_opened}")
@@ -60,13 +151,6 @@ defmodule Volcano do
 
       true ->
         room = Map.fetch!(rooms, roomName)
-        self = []
-
-        if not room.opened do
-          self = {roomName, [], room.flow * (time - 1), time - 1}
-        else
-          self
-        end
 
         # traverse to all rooms with a non-zero flow open valve.
         targets =
@@ -93,7 +177,6 @@ defmodule Volcano do
 
             {name, path, score, timeLeft}
           end)
-          |> Enum.concat(self)
 
         cond do
           length(targets) == 0 ->
@@ -116,127 +199,10 @@ defmodule Volcano do
                   graph,
                   Map.put(rooms, nextName, %{nextRoom | opened: true}),
                   timeLeft,
-                  currentScore + addition
+                  currentScore + addition,
+                  order,
+                  dupeMap
                 )
-              end
-
-            Enum.max(scores)
-        end
-    end
-  end
-
-  def gtraverse2(roomA, roomB, graph, rooms, time) do
-    gtraverse2(roomA, roomB, graph, rooms, time, time, 0)
-  end
-
-  def gtraverse2(_roomA, _roomB, _graph, _rooms, aTime, bTime, score)
-      when aTime <= 0 and bTime <= 0 do
-    score
-  end
-
-  def gtraverse2(roomA, roomB, graph, rooms, aTime, bTime, currentScore) do
-    all_opened = Enum.all?(rooms, fn {_, room} -> room.opened == true end)
-
-    # IO.puts("Time is #{time} and all opened is #{all_opened}")
-
-    cond do
-      all_opened ->
-        currentScore
-
-      true ->
-        # a = Map.fetch!(rooms, roomA)
-        # b = Map.fetch!(rooms, roomB)
-
-        # traverse to all rooms with a non-zero flow open valve.
-        targets =
-          rooms
-          |> Enum.filter(fn {name, room} ->
-            room.flow > 0 and not room.opened
-          end)
-          |> Enum.map(fn {name, _} -> name end)
-          |> Enum.map(fn name ->
-            {
-              name,
-              Graph.a_star(graph, roomA, name, fn _ -> 0 end),
-              Graph.a_star(graph, roomB, name, fn _ -> 0 end)
-            }
-          end)
-          |> Enum.filter(fn {_, apath, bpath} ->
-            apath != nil and bpath != nil and (length(apath) <= aTime and length(bpath) < bTime)
-          end)
-          |> Enum.map(fn {name, aPath, bPath} ->
-            next = Map.fetch!(rooms, name)
-            # Minus 2 because the first room is in the path, then 1 cost to open.
-            # IO.puts(
-            #   "Next is #{name} with #{time} - #{length(path)} - 2 = #{time - length(path) - 2} time left"
-            # )
-
-            aTimeLeft = aTime - (length(aPath) - 1) - 1
-            bTimeLeft = bTime - (length(bPath) - 1) - 1
-
-            aScore = next.flow * aTimeLeft
-            bScore = next.flow * bTimeLeft
-
-            bTup =
-              if bTimeLeft < 0 do
-                {[], 0, bTime}
-              else
-                {bPath, bScore, bTimeLeft}
-              end
-
-            {_, bScore, _} = bTup
-
-            aTup =
-              if aTimeLeft < 0 do
-                {[], 0, aTime}
-              else
-                {aPath, aScore, aTimeLeft}
-              end
-
-            {_, aScore, _} = aTup
-
-            {name, aTup, bTup, Enum.max([aScore, bScore])}
-          end)
-
-        cond do
-          length(targets) == 0 ->
-            currentScore
-
-          # All
-          true ->
-            # This is a cheeky way to prune branches
-            targets =
-              Enum.sort_by(targets, fn {_name, _a, _b, bestScore} -> bestScore end, :desc)
-              |> Enum.take(15)
-
-            scores =
-              for {name, {_aPath, aScore, aTimeLeft}, {_bPath, bScore, bTimeLeft}, best} <-
-                    targets,
-                  {name2, {_aPath2, aScore2, aTimeLeft2}, {_bPath2, bScore2, bTimeLeft2}, best2} <-
-                    targets do
-                cond do
-                  name == name2 ->
-                    currentScore
-
-                  true ->
-                    one = Map.fetch!(rooms, name)
-                    two = Map.fetch!(rooms, name2)
-
-                    # I am stuck since the timeLeft will not be the same for both
-                    gtraverse2(
-                      name,
-                      name2,
-                      graph,
-                      Map.put(
-                        Map.put(rooms, one, %{one | opened: true}),
-                        two,
-                        %{two | opened: true}
-                      ),
-                      aTimeLeft,
-                      bTimeLeft2,
-                      currentScore + aScore + bScore2
-                    )
-                end
               end
 
             Enum.max(scores)
@@ -250,12 +216,13 @@ defmodule Mix.Tasks.Day16 do
 
   @impl Mix.Task
   def run(_) do
-    {graph, rooms} = Volcano.parse("easy.txt")
-    # score = Volcano.gtraverse("AA", graph, rooms, 30)
-    # IO.puts("Part 1: #{score}")
+    {graph, rooms} = Volcano.parse("input.txt")
+    score = Volcano.gtraverse("AA", graph, rooms, 30)
+    IO.puts("Part 1: #{score}")
 
-    score = Volcano.gtraverse2("AA", "AA", graph, rooms, 26)
-    IO.puts("Part 2: #{score}")
+    # score = Volcano.solve_2("AA", graph, rooms, 26)
+    # IO.inspect(score)
+    # IO.puts("Part 2: #{score}")
   end
 end
 
