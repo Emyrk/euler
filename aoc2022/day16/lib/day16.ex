@@ -41,12 +41,12 @@ defmodule Volcano do
     {graph, rooms}
   end
 
-  def gtraverse(_roomName, _graph, _rooms, time, score) when time <= 0 do
-    score
-  end
-
   def gtraverse(roomName, graph, rooms, time) do
     gtraverse(roomName, graph, rooms, time, 0)
+  end
+
+  def gtraverse(_roomName, _graph, _rooms, time, score) when time <= 0 do
+    score
   end
 
   def gtraverse(roomName, graph, rooms, time, currentScore) do
@@ -101,6 +101,11 @@ defmodule Volcano do
 
           # All
           true ->
+            # This is a cheeky way to prune branches
+            targets =
+              Enum.sort_by(targets, fn {_, _, addition, timeLeft} -> addition end, :desc)
+              |> Enum.take(10)
+
             scores =
               for target <- targets do
                 {nextName, _path, addition, timeLeft} = target
@@ -135,73 +140,8 @@ defmodule Volcano do
             #     currentScore + addition
             #   )
         end
-
-        # scores =
-        #   cond do
-        #     length(targets) > 0 ->
-        #       for {target, path} <- targets do
-        #         gtraverse(target, graph, rooms, time - length(path) - 1, score)
-        #       end
-
-        #     true ->
-        #       [score]
-        #   end
-
-        # IO.inspect([roomName, scores, room.opened])
-
-        # if room.opened do
-        #   Enum.max(scores)
-        # else
-        #   Enum.max([gopen(roomName, graph, rooms, time, score) | scores])
-        # end
     end
   end
-
-  # def traverse(_roomName, _rooms, time, score) when time == 0 do
-  #   score
-  # end
-
-  # def open(_roomName, _rooms, time, score) when time == 0 do
-  #   score
-  # end
-
-  # def traverse(roomName, rooms, time) do
-  #   traverse(roomName, rooms, time, 0)
-  # end
-
-  # def traverse(roomName, rooms, time, score) do
-  #   all_opened = Enum.all?(rooms, fn {_, room} -> room.opened == true end)
-
-  #   cond do
-  #     all_opened ->
-  #       IO.puts("All rooms opened with #{time} time left")
-  #       score
-
-  #     true ->
-  #       # IO.puts("Traversing #{roomName} with #{time} time left")
-  #       room = Map.fetch!(rooms, roomName)
-  #       # Possible scores is traversing all tunnels and opening the valve.
-  #       scores =
-  #         for tunnel <- room.tunnels do
-  #           traverse(tunnel, rooms, time - 1)
-  #         end
-
-  #       if room.opened do
-  #         Enum.max(scores)
-  #       else
-  #         Enum.max([open(roomName, rooms, time, score) | scores])
-  #       end
-  #   end
-  # end
-
-  # def open(roomName, rooms, time, score) do
-  #   room = Map.fetch!(rooms, roomName)
-  #   time = time - 1
-  #   rooms = Map.put(rooms, roomName, %{room | opened: true})
-  #   add = room.flow * time
-  #   # IO.puts("Opening #{roomName} with #{time} time left and score #{add}")
-  #   traverse(roomName, rooms, time, score + add)
-  # end
 end
 
 defmodule Mix.Tasks.Day16 do
@@ -209,10 +149,10 @@ defmodule Mix.Tasks.Day16 do
 
   @impl Mix.Task
   def run(_) do
-    {graph, rooms} = Volcano.parse("small.txt")
+    {graph, rooms} = Volcano.parse("input.txt")
     # score = Volcano.traverse("AA", rooms, 30)
     score = Volcano.gtraverse("AA", graph, rooms, 30)
-    IO.inspect(score)
+    IO.puts("Part 1: #{score}")
     # IO.puts("Part 1: #{score}")
 
     #    solved = Signals.solvePartOne("input.txt")
@@ -222,3 +162,7 @@ defmodule Mix.Tasks.Day16 do
     #    IO.puts("Part 2: #{solved}")
   end
 end
+
+# Took 300s without more optimizations
+# Part 1: 1641
+# elixir -S mix Day16  307.16s user 4.57s system 100% cpu 5:10.59 total
