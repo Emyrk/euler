@@ -64,7 +64,7 @@ defmodule Volcano do
         IO.puts("#{n}: #{scoreA} + #{scoreB} = #{scoreA + scoreB}")
         scoreA + scoreB
       end,
-      max_concurrency: 8,
+      max_concurrency: 12,
       timeout: :infinity
     )
     # |> Task.await_many(:infinity)
@@ -92,21 +92,17 @@ defmodule Volcano do
         subset != nil
       end)
 
-    aMatch =
-      a
-      |> Enum.map(fn subset ->
-        {subset, true}
-      end)
-      |> Map.new()
-
-    # |> Enum.count()
-
     a
     |> Enum.take(round((length(a) + 1) / 2))
     |> Enum.reduce([], fn aSet, acc ->
       bSet = names -- aSet
       [{aSet, bSet} | acc]
     end)
+
+    # |> Enum.filter(fn {aSet, bSet} ->
+    #   # This is not provable correct.
+    #   length(aSet) > 2 and length(bSet) > 2
+    # end)
   end
 
   def make_graph(rooms) do
@@ -200,9 +196,9 @@ defmodule Volcano do
           # All
           true ->
             # This is a cheeky way to prune branches
-            targets =
-              Enum.sort_by(targets, fn {_, _, addition, timeLeft} -> addition end, :desc)
-              |> Enum.take(10)
+            # targets =
+            #   Enum.sort_by(targets, fn {_, _, addition, timeLeft} -> addition end, :desc)
+            #   |> Enum.take(10)
 
             scores =
               for target <- targets do
@@ -242,6 +238,8 @@ defmodule Mix.Tasks.Day16 do
     # score = Volcano.gtraverse("AA", graph, rooms, 30)
     # IO.puts("Part 1: #{score}")
 
+    # Part 2: 2193
+    # elixir -S mix Day16  13040.94s user 236.13s system 601% cpu 36:48.56 total
     score = Volcano.solve_2("AA", graph, rooms, 26)
     IO.puts("Part 2: #{score}")
   end
