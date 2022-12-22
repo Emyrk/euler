@@ -45,27 +45,14 @@ defmodule Volcano do
     score
   end
 
-  def gopen(_roomName, _graph, _rooms, time, score) when time <= 0 do
-    score
-  end
-
   def gtraverse(roomName, graph, rooms, time) do
     gtraverse(roomName, graph, rooms, time, 0)
-  end
-
-  def gopen(roomName, graph, rooms, time, score) do
-    room = Map.fetch!(rooms, roomName)
-    time = time - 1
-    rooms = Map.put(rooms, roomName, %{room | opened: true})
-    add = room.flow * time
-    IO.puts("Opening #{roomName} with #{time} time left and score #{add}")
-    gtraverse(roomName, graph, rooms, time, score + add)
   end
 
   def gtraverse(roomName, graph, rooms, time, currentScore) do
     all_opened = Enum.all?(rooms, fn {_, room} -> room.opened == true end)
 
-    IO.puts("Time is #{time} and all opened is #{all_opened}")
+    # IO.puts("Time is #{time} and all opened is #{all_opened}")
 
     cond do
       all_opened ->
@@ -112,22 +99,41 @@ defmodule Volcano do
           length(targets) == 0 ->
             currentScore
 
+          # All
           true ->
-            IO.inspect(targets)
-            next = Enum.max_by(targets, fn {nextName, _path, addition, timeLeft} -> addition end)
+            scores =
+              for target <- targets do
+                {nextName, _path, addition, timeLeft} = target
+                nextRoom = Map.fetch!(rooms, nextName)
 
-            {nextName, _path, addition, timeLeft} = next
-            IO.puts("Next is #{nextName} with #{timeLeft} time left")
+                gtraverse(
+                  nextName,
+                  graph,
+                  Map.put(rooms, nextName, %{nextRoom | opened: true}),
+                  timeLeft,
+                  currentScore + addition
+                )
+              end
 
-            nextRoom = Map.fetch!(rooms, nextName)
+            Enum.max(scores)
 
-            gtraverse(
-              nextName,
-              graph,
-              Map.put(rooms, nextName, %{nextRoom | opened: true}),
-              timeLeft,
-              currentScore + addition
-            )
+            # By best
+            # true ->
+            #   IO.inspect(targets)
+            #   next = Enum.max_by(targets, fn {nextName, _path, addition, timeLeft} -> addition end)
+
+            #   {nextName, _path, addition, timeLeft} = next
+            #   IO.puts("Next is #{nextName} with #{timeLeft} time left")
+
+            #   nextRoom = Map.fetch!(rooms, nextName)
+
+            #   gtraverse(
+            #     nextName,
+            #     graph,
+            #     Map.put(rooms, nextName, %{nextRoom | opened: true}),
+            #     timeLeft,
+            #     currentScore + addition
+            #   )
         end
 
         # scores =
