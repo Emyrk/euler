@@ -14,6 +14,22 @@ end
 defmodule Volcano do
   @roomRegex ~r/Valve ([A-Z][A-Z]) has flow rate=(\d+);\s+tunnels? leads? to valves? (.*)/
 
+  def scoreLeft(rooms, time) do
+    rooms
+    |> Enum.filter(fn {_, room} ->
+      room.flow > 0
+    end)
+    |> Enum.map(fn {name, room} ->
+      room.flow
+    end)
+    |> Enum.sort(:desc)
+    |> Enum.with_index()
+    |> Enum.map(fn {flow, i} ->
+      flow * (time - i)
+    end)
+    |> Enum.sum()
+  end
+
   def make_rooms(rooms, names) do
     # IO.inspect(names)
 
@@ -32,7 +48,6 @@ defmodule Volcano do
 
   def solve_2(start, graph, rooms, time) do
     splits = room_splits(rooms)
-    IO.inspect(splits)
     IO.puts("Splits: #{length(splits)}")
 
     splits
@@ -133,14 +148,14 @@ defmodule Volcano do
   end
 
   def gtraverse(roomName, graph, rooms, time) do
-    gtraverse(roomName, graph, rooms, time, 0, [], %{})
+    gtraverse(roomName, graph, rooms, time, 0, 0)
   end
 
-  def gtraverse(_roomName, _graph, _rooms, time, score, _order, _dupeMap) when time <= 0 do
+  def gtraverse(_roomName, _graph, _rooms, time, score, _bestScore) when time <= 0 do
     score
   end
 
-  def gtraverse(roomName, graph, rooms, time, currentScore, order, dupeMap) do
+  def gtraverse(roomName, graph, rooms, time, currentScore, bestScore) do
     all_opened = Enum.all?(rooms, fn {_, room} -> room.opened == true end)
 
     # IO.puts("Time is #{time} and all opened is #{all_opened}")
@@ -193,16 +208,22 @@ defmodule Volcano do
               for target <- targets do
                 {nextName, _path, addition, timeLeft} = target
                 nextRoom = Map.fetch!(rooms, nextName)
+                myScore = currentScore + addition
+                bestScore = Enum.max([myScore, bestScore])
+                nextRooms = Map.put(rooms, nextName, %{nextRoom | opened: true})
 
-                gtraverse(
-                  nextName,
-                  graph,
-                  Map.put(rooms, nextName, %{nextRoom | opened: true}),
-                  timeLeft,
-                  currentScore + addition,
-                  order,
-                  dupeMap
-                )
+                if scoreLeft(nextRooms, timeLeft) < bestScore do
+                  myScore
+                else
+                  gtraverse(
+                    nextName,
+                    graph,
+                    Map.put(rooms, nextName, %{nextRoom | opened: true}),
+                    timeLeft,
+                    myScore,
+                    bestScore
+                  )
+                end
               end
 
             Enum.max(scores)
@@ -217,12 +238,12 @@ defmodule Mix.Tasks.Day16 do
   @impl Mix.Task
   def run(_) do
     {graph, rooms} = Volcano.parse("input.txt")
-    score = Volcano.gtraverse("AA", graph, rooms, 30)
-    IO.puts("Part 1: #{score}")
+    # IO.inspect(Volcano.scoreLeft(rooms, 30))
+    # score = Volcano.gtraverse("AA", graph, rooms, 30)
+    # IO.puts("Part 1: #{score}")
 
-    # score = Volcano.solve_2("AA", graph, rooms, 26)
-    # IO.inspect(score)
-    # IO.puts("Part 2: #{score}")
+    score = Volcano.solve_2("AA", graph, rooms, 26)
+    IO.puts("Part 2: #{score}")
   end
 end
 
