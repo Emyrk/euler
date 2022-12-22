@@ -62,25 +62,27 @@ defmodule Volcano do
     gtraverse(roomName, graph, rooms, time, score + add)
   end
 
-  def gtraverse(roomName, graph, rooms, time, score) do
+  def gtraverse(roomName, graph, rooms, time, currentScore) do
     all_opened = Enum.all?(rooms, fn {_, room} -> room.opened == true end)
+
+    IO.puts("Time is #{time} and all opened is #{all_opened}")
 
     cond do
       all_opened ->
-        score
+        currentScore
 
       true ->
         room = Map.fetch!(rooms, roomName)
         self = []
 
         if not room.opened do
-          self = {roomName, [], room.flow * (time - 1)}
+          self = {roomName, [], room.flow * (time - 1), time - 1}
         else
           self
         end
 
         # traverse to all rooms with a non-zero flow open valve.
-        target =
+        targets =
           rooms
           |> Enum.filter(fn {name, room} ->
             room.flow > 0 and not room.opened
@@ -95,15 +97,38 @@ defmodule Volcano do
           |> Enum.map(fn {name, path} ->
             next = Map.fetch!(rooms, name)
             # Minus 2 because the first room is in the path, then 1 cost to open.
-            score = next.flow * (time - length(path) - 2)
+            # IO.puts(
+            #   "Next is #{name} with #{time} - #{length(path)} - 2 = #{time - length(path) - 2} time left"
+            # )
 
-            {name, path, score}
+            timeLeft = time - (length(path) - 1) - 1
+            score = next.flow * timeLeft
+
+            {name, path, score, timeLeft}
           end)
           |> Enum.concat(self)
-          |> Enum.max_by(fn {_, _, score} -> score end)
 
-        IO.inspect(target)
-        0
+        cond do
+          length(targets) == 0 ->
+            currentScore
+
+          true ->
+            IO.inspect(targets)
+            next = Enum.max_by(targets, fn {nextName, _path, addition, timeLeft} -> addition end)
+
+            {nextName, _path, addition, timeLeft} = next
+            IO.puts("Next is #{nextName} with #{timeLeft} time left")
+
+            nextRoom = Map.fetch!(rooms, nextName)
+
+            gtraverse(
+              nextName,
+              graph,
+              Map.put(rooms, nextName, %{nextRoom | opened: true}),
+              timeLeft,
+              currentScore + addition
+            )
+        end
 
         # scores =
         #   cond do
