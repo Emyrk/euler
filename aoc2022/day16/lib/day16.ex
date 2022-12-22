@@ -121,24 +121,104 @@ defmodule Volcano do
               end
 
             Enum.max(scores)
+        end
+    end
+  end
 
-            # By best
-            # true ->
-            #   IO.inspect(targets)
-            #   next = Enum.max_by(targets, fn {nextName, _path, addition, timeLeft} -> addition end)
+  def gtraverse2(roomA, roomB, graph, rooms, time) do
+    gtraverse(roomA, roomB, graph, rooms, time, 0)
+  end
 
-            #   {nextName, _path, addition, timeLeft} = next
-            #   IO.puts("Next is #{nextName} with #{timeLeft} time left")
+  def gtraverse2(_roomA, _roomB, _graph, _rooms, time, score) when time <= 0 do
+    score
+  end
 
-            #   nextRoom = Map.fetch!(rooms, nextName)
+  def gtraverse(roomA, roomB, graph, rooms, time, currentScore) do
+    all_opened = Enum.all?(rooms, fn {_, room} -> room.opened == true end)
 
-            #   gtraverse(
-            #     nextName,
-            #     graph,
-            #     Map.put(rooms, nextName, %{nextRoom | opened: true}),
-            #     timeLeft,
-            #     currentScore + addition
-            #   )
+    # IO.puts("Time is #{time} and all opened is #{all_opened}")
+
+    cond do
+      all_opened ->
+        currentScore
+
+      true ->
+        a = Map.fetch!(rooms, roomA)
+        b = Map.fetch!(rooms, b)
+
+        room = Map.fetch!(rooms, roomName)
+        self = []
+
+        # traverse to all rooms with a non-zero flow open valve.
+        targets =
+          rooms
+          |> Enum.filter(fn {name, room} ->
+            room.flow > 0 and not room.opened
+          end)
+          |> Enum.map(fn {name, _} -> name end)
+          |> Enum.map(fn name ->
+            {
+              name,
+              Graph.a_star(graph, roomA, name, fn _ -> 0 end),
+              Graph.a_star(graph, roomB, name, fn _ -> 0 end)
+            }
+          end)
+          # |> Enum.filter(fn {_, apath, bpath} ->
+          #   apath != nil and length(path) <= time
+          # end)
+          |> Enum.map(fn {name, aPath, bPath} ->
+            next = Map.fetch!(rooms, name)
+            # Minus 2 because the first room is in the path, then 1 cost to open.
+            # IO.puts(
+            #   "Next is #{name} with #{time} - #{length(path)} - 2 = #{time - length(path) - 2} time left"
+            # )
+
+            aTimeLeft = time - (length(aPath) - 1) - 1
+            bTimeLeft = time - (length(bPath) - 1) - 1
+
+            aScore = next.flow * aTimeLeft
+            bScore = next.flow * bTimeLeft
+
+            {name, {aPath, aScore, aTimeLeft}, {bPath, bScore, bTimeLeft},
+             Enum.max(aScore, bScore)}
+          end)
+
+        cond do
+          length(targets) == 0 ->
+            currentScore
+
+          # All
+          true ->
+            # This is a cheeky way to prune branches
+            targets =
+              Enum.sort_by(targets, fn {_name, _a, _b, bestScore} -> bestScore end, :desc)
+              |> Enum.take(10)
+
+            scores =
+              for {name, {_aPath, aScore, aTimeLeft}, {_bPath, bScore, bTimeLeft}, best} <-
+                    targets,
+                  {name2, {_aPath2, aScore2, aTimeLeft2}, {_bPath2, bScore2, bTimeLeft2}, best2} <-
+                    targets do
+                cond do
+                  name == name2 ->
+                    currentScore
+
+                  true ->
+                    one = Map.fetch!(rooms, name)
+                    two = Map.fetch!(rooms, name2)
+
+                    gtraverse(
+                      name,
+                      name2,
+                      graph,
+                      Map.put(rooms, nextName, %{nextRoom | opened: true}),
+                      timeLeft,
+                      currentScore + addition
+                    )
+                end
+              end
+
+            Enum.max(scores)
         end
     end
   end
