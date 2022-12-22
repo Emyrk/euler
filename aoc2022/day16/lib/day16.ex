@@ -149,17 +149,10 @@ defmodule Mix.Tasks.Day16 do
 
   @impl Mix.Task
   def run(_) do
-    {graph, rooms} = Volcano.parse("input.txt")
+    {graph, rooms} = Volcano.parse("easy.txt")
     # score = Volcano.traverse("AA", rooms, 30)
     score = Volcano.gtraverse("AA", graph, rooms, 30)
     IO.puts("Part 1: #{score}")
-    # IO.puts("Part 1: #{score}")
-
-    #    solved = Signals.solvePartOne("input.txt")
-    #    IO.puts("Part 1: #{solved}")
-    #
-    #    solved = Signals.solvePartTwo("input.txt")
-    #    IO.puts("Part 2: #{solved}")
   end
 end
 
