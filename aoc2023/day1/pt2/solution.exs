@@ -150,10 +150,24 @@ defmodule Util do
         end
       end)
 
-    IO.puts("Parsed: #{inspect(Map.get(parsed, :chars))} from \"#{line}\"")
-
     # return the original line for now
-    Map.get(parsed, :chars)
+    tups =
+      Map.get(parsed, :chars)
+      |> Enum.reduce([], fn i, acc ->
+        if i in ?0..?9 do
+          if(length(acc) > 0) do
+            [hd | _] = acc
+            [hd, i]
+          else
+            [i, i]
+          end
+        else
+          acc
+        end
+      end)
+
+    IO.puts("Parsed: #{inspect(Map.get(parsed, :chars))} from \"#{line}\" to #{inspect(tups)}")
+    tups
   end
 end
 
@@ -164,19 +178,20 @@ reduced =
   |> Enum.map(fn line ->
     line
     |> Util.parse_numbers()
+
     # |> String.to_charlist()
-    |> Enum.reduce([], fn i, acc ->
-      if i in ?0..?9 do
-        if(length(acc) > 0) do
-          [hd | _] = acc
-          [hd, i]
-        else
-          [i, i]
-        end
-      else
-        acc
-      end
-    end)
+    # |> Enum.reduce([], fn i, acc ->
+    #   if i in ?0..?9 do
+    #     if(length(acc) > 0) do
+    #       [hd | _] = acc
+    #       [hd, i]
+    #     else
+    #       [i, i]
+    #     end
+    #   else
+    #     acc
+    #   end
+    # end)
   end)
   |> Enum.map(fn tuples ->
     tuples
