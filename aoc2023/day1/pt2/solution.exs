@@ -133,16 +133,20 @@ defmodule Util do
           root = @numeric_words_tree[c]
           # IO.puts("Root: #{inspect(root)}")
 
+          # This is kinda jank here, because I designed it differently by misreading the problem.
+          # Instead of fixing this, I just pass trees ++ root and filter out the numbers and nils.
           cond do
             num != nil ->
               # found a number!
               # IO.puts("Num: #{inspect(List.to_string([num]))}")
-              %{chars: chars ++ [num], trees: []}
+              %{
+                chars: chars ++ [num],
+                trees: (trees ++ [root]) |> Enum.filter(&(&1 != nil and is_map(&1)))
+              }
 
-            root != nil ->
-              %{chars: chars, trees: (trees ++ [root]) |> Enum.filter(&(&1 != nil))}
+            # (trees ++ [root]) |> Enum.filter(&(&1 != nil)) and filter out numbers
 
-            root == nil ->
+            true ->
               %{chars: chars, trees: (trees ++ [root]) |> Enum.filter(&(&1 != nil))}
           end
 
@@ -166,7 +170,7 @@ defmodule Util do
         end
       end)
 
-    IO.puts("Parsed: #{inspect(Map.get(parsed, :chars))} from \"#{line}\" to #{inspect(tups)}")
+    # IO.puts("Parsed: #{inspect(Map.get(parsed, :chars))} from \"#{line}\" to #{inspect(tups)}")
     tups
   end
 end
