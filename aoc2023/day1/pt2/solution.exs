@@ -140,10 +140,10 @@ defmodule Util do
               %{chars: chars ++ [num], trees: []}
 
             root != nil ->
-              %{chars: chars, trees: trees ++ [root]}
+              %{chars: chars, trees: (trees ++ [root]) |> Enum.filter(&(&1 != nil))}
 
             root == nil ->
-              %{chars: chars, trees: trees}
+              %{chars: chars, trees: (trees ++ [root]) |> Enum.filter(&(&1 != nil))}
           end
 
           # END
