@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	parsed := parse("test.txt")
+	parsed := parse("input.txt")
 	fmt.Println("Part One:", partOne(parsed))
 	fmt.Println("Part Two:", partTwo(parsed))
 
@@ -21,15 +21,13 @@ func partTwo(parsed Parsed) int {
 		u := parsed.Updates[i]
 
 		if !updateOk(parsed, u) {
-			fmt.Println("----", u)
 			// Fix the order, then add sum
 			ng := parsed.Nodes.trim(u)
-			ng.Print()
+			//ng.Print()
 			fixed := ng.topologicalSort()
 			if !updateOk(parsed, fixed) {
 				panic(fmt.Sprintf("%v is not ok", fixed))
 			}
-			fmt.Println(fixed)
 
 			sum += fixed[len(u)/2]
 		}
@@ -51,11 +49,9 @@ func updateOk(parsed Parsed, update []int) bool {
 	notAllowed := make(map[int]struct{}, 0)
 	for _, v := range update {
 		if _, ok := notAllowed[v]; ok {
-			//fmt.Printf("breaks: %d\n", v)
 			return false
 		}
 		for na := range parsed.NotAllowedAfter[v] {
-			//fmt.Printf("%d prevents %d\n", v, na)
 			notAllowed[na] = struct{}{}
 		}
 	}
@@ -114,7 +110,7 @@ func (g Graph) Print() {
 			have[p.Value] += "p"
 		}
 		for _, c := range node.Next {
-			str.WriteString(fmt.Sprintf("%d -> %d\n", node.Value, c.Value))
+			//str.WriteString(fmt.Sprintf("%d -> %d\n", node.Value, c.Value))
 			have[c.Value] += "c"
 		}
 	}
@@ -124,40 +120,32 @@ func (g Graph) Print() {
 
 func (g Graph) trim(keep []int) Graph {
 	cpy := g.copy()
+
 	keepMap := make(map[int]struct{})
 	for _, v := range keep {
 		keepMap[v] = struct{}{}
 	}
-	for val, node := range cpy {
-		if _, ok := keepMap[val]; ok {
-			continue
-		}
-
-		for _, parent := range node.Parent {
-			// Delete self from parent
-			delete(parent.Next, node.Value)
-			// Set children to the new next
-			for _, myNext := range node.Next {
-				parent.Next[myNext.Value] = myNext
-			}
-		}
-
-		for _, child := range node.Next {
-			// Delete self from next
-			delete(child.Parent, node.Value)
-			// Set parent to the new parent
-			for _, myParent := range node.Parent {
-				child.Parent[myParent.Value] = myParent
-			}
-		}
-
-		// DELETE IT
-		delete(cpy, val)
-	}
 
 	for _, node := range cpy {
-		delete(node.Parent, node.Value)
-		delete(node.Next, node.Value)
+		if _, ok := keepMap[node.Value]; ok {
+			continue
+		}
+		// Delete the node
+		delete(cpy, node.Value)
+	}
+
+	// Remove the node from all next/parents
+	for _, n := range cpy {
+		for _, p := range n.Parent {
+			if _, ok := keepMap[p.Value]; !ok {
+				delete(n.Parent, p.Value)
+			}
+		}
+		for _, next := range n.Next {
+			if _, ok := keepMap[next.Value]; !ok {
+				delete(n.Next, next.Value)
+			}
+		}
 	}
 	return cpy
 }
